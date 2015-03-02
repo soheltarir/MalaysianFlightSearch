@@ -1,0 +1,177 @@
+#ifndef _MY_CLASS_H_
+#define _MY_CLASS_H_
+
+#include <iostream>
+#include <stdio.h>
+#include <math.h>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+#define MAX_POINTS 1000000
+struct CartesianPts {
+    int X_;
+    int Y_;
+};
+
+struct NameEquals {
+    bool operator() (const CartesianPts & rhs) const
+    {
+        return (rhs.X_ == name.X_ && rhs.Y_ == name.Y_ );
+    }
+    NameEquals(CartesianPts n) : name(n) {}
+
+    private:
+    CartesianPts name;
+};
+/*****Quick Sort Implementation******/
+void swap(int &a, int &b)
+{
+    int temp;
+    temp = a;
+    a = b;
+    b = temp;
+}
+int SplitArray(int* array, int pivot, int startIndex, int endIndex)
+{
+    int leftBoundary = startIndex;
+    int rightBoundary = endIndex;
+    while(leftBoundary < rightBoundary)
+    {
+        while(pivot < array[rightBoundary] && rightBoundary > leftBoundary)
+        {
+            rightBoundary--;
+        }
+        swap(array[leftBoundary], array[rightBoundary]);
+        while(pivot >= array[leftBoundary] && leftBoundary < rightBoundary)
+        {
+            leftBoundary++;
+        }
+        swap(array[rightBoundary], array[leftBoundary]);
+    }
+    return leftBoundary;
+}
+void QuickSort(int* array, int startIndex, int endIndex)
+{
+    int pivot = array[startIndex];
+    int splitPoint;
+    if (endIndex > startIndex)
+    {
+        splitPoint = SplitArray(array, pivot, startIndex, endIndex);
+        array[splitPoint] = pivot;
+        QuickSort(array, startIndex, splitPoint-1);
+        QuickSort(array, splitPoint+1, endIndex);
+    }
+}
+/******************************************/
+
+class Plane {
+    public:
+        Plane(int id_, int range_, int economy_)
+        {
+            m_Id = id_;
+            m_Range = range_;
+            m_Economy = economy_;
+        }
+        int Id()    { return m_Id; }
+        int Range() { return m_Range; }
+        int Economy()  { return m_Economy; }
+        int Cost(int x1_, int y1_, int x2_ = 0, int y2_ = 0)
+        {
+            return (m_Economy*(abs(x1_ - x2_) + abs(y1_ - y2_)));
+        }
+    private:
+        int m_Id;
+        int m_Range;
+        int m_Economy;
+};
+
+class Grid {
+    public:
+        Grid(vector <CartesianPts> vectPts_)
+        {
+            vector <CartesianPts>::iterator it;
+            m_vectBoundary = vectPts_;
+            SortByX(m_vectBoundary);
+            InitGrid();
+        }
+        void InitGrid()
+        {
+            m_isInGrid = true;
+            m_isOutGrid = false;
+            struct CartesianPts v1, v2, v3, v4;
+            /*****Vertices for the largest rectangle that circumscribes the grid*******/
+            v1 = m_vectBoundary.front();
+            v4 = m_vectBoundary.back();
+            v2.X_ = (m_vectBoundary.front()).X_; v2.Y_ = (m_vectBoundary.back()).Y_;
+            v3.X_ = (m_vectBoundary.back()).X_; v3.Y_ = (m_vectBoundary.front()).Y_;
+            /**************************************************************************/
+            
+            for (int x = v1.X_+1; x < v3.X_ ; x++)
+            {
+                struct CartesianPts inGrid, prevPt;
+                int y = v1.Y_ + 1;
+                vector <CartesianPts>::iterator it;
+                prevPt.X_ = x; prevPt.Y_ = v1.Y_;
+                while(y < v2.Y_)
+                {
+                    //cout << "Now = " << x << " " << y << endl;
+                    inGrid.X_ = x; inGrid.Y_ = y;
+                    it = find_if(m_vectBoundary.begin(), m_vectBoundary.end(), NameEquals(inGrid));
+                    if (it != m_vectBoundary.end())
+                    {
+                        //cout << "ABS: " <<abs(prevPt.Y_ - y)  << " Is in grid: " << m_isInGrid << endl; 
+                        
+                        if (abs(prevPt.Y_ - y) > 1) { m_isInGrid = false; }
+                        else                        { prevPt.X_ = x; prevPt.Y_ = y;}
+                       // cout << "Prev1: " << prevPt.Y_ << " Is in Grid:" << m_isInGrid << endl;
+                    }
+                    else if (it == m_vectBoundary.end())
+                    {
+                        if (abs(prevPt.Y_ - y) <= 1)
+                        {    
+                           // cout << "Prev: " << prevPt.Y_ << endl;
+                            m_isInGrid = true;
+                        }
+                        else 
+                            m_isOutGrid = true;
+                        
+                        if (m_isInGrid)
+                            m_vectGrid.push_back(inGrid);
+                        if (m_isOutGrid)
+                        {
+                            prevPt.X_ = x; prevPt.Y_ = y;
+                        }
+                    }
+                    y++;
+                    //cout << "PrevEnd: " << prevPt.Y_ << endl;
+                }
+            }
+            SortByX(m_vectGrid);
+        }
+        void PrintGridPts()
+        {
+            for (int i = 0; i < m_vectGrid.size(); i++)
+                cout << "X:" << (m_vectGrid.at(i)).X_ << " " << "Y:" << (m_vectGrid.at(i)).Y_ << endl;
+        }
+    protected:
+        static bool compareCoord(const CartesianPts &a, const CartesianPts &b)
+        {
+            if (a.X_ == b.X_)
+                return a.Y_ < b.Y_;
+            else
+                return a.X_ < b.X_;
+        }
+        void SortByX(vector <CartesianPts> &vectPts_)
+        {
+            sort(vectPts_.begin(), vectPts_.end(), compareCoord);
+        }
+    private:
+        vector <CartesianPts> m_vectBoundary;
+        vector <CartesianPts> m_vectGrid;
+        vector <int> m_vectX;
+        vector <int> m_vectY;
+        bool m_isInGrid, m_isOutGrid;
+};
+#endif

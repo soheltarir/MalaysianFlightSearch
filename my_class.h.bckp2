@@ -1,0 +1,227 @@
+#ifndef _MY_CLASS_H_
+#define _MY_CLASS_H_
+
+#include <iostream>
+#include <stdio.h>
+#include <math.h>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+#define MAX_POINTS 1000000
+struct CartesianPts {
+    int X_;
+    int Y_;
+};
+
+struct NameEquals {
+    bool operator() (const CartesianPts & rhs) const
+    {
+        return (rhs.X_ == name.X_ && rhs.Y_ == name.Y_ );
+    }
+    NameEquals(CartesianPts n) : name(n) {}
+
+    private:
+    CartesianPts name;
+};
+class valueComp {
+    public:
+        bool operator()(const CartesianPts& A, const CartesianPts& B) const
+        {
+            return A.X_ < B.X_;
+        }
+};
+/*****Quick Sort Implementation******/
+void swap(int &a, int &b)
+{
+    int temp;
+    temp = a;
+    a = b;
+    b = temp;
+}
+int SplitArray(int* array, int pivot, int startIndex, int endIndex)
+{
+    int leftBoundary = startIndex;
+    int rightBoundary = endIndex;
+    while(leftBoundary < rightBoundary)
+    {
+        while(pivot < array[rightBoundary] && rightBoundary > leftBoundary)
+        {
+            rightBoundary--;
+        }
+        swap(array[leftBoundary], array[rightBoundary]);
+        while(pivot >= array[leftBoundary] && leftBoundary < rightBoundary)
+        {
+            leftBoundary++;
+        }
+        swap(array[rightBoundary], array[leftBoundary]);
+    }
+    return leftBoundary;
+}
+void QuickSort(int* array, int startIndex, int endIndex)
+{
+    int pivot = array[startIndex];
+    int splitPoint;
+    if (endIndex > startIndex)
+    {
+        splitPoint = SplitArray(array, pivot, startIndex, endIndex);
+        array[splitPoint] = pivot;
+        QuickSort(array, startIndex, splitPoint-1);
+        QuickSort(array, splitPoint+1, endIndex);
+    }
+}
+/******************************************/
+
+class Plane {
+    public:
+        Plane(int id_, int range_, int economy_)
+        {
+            m_Id = id_;
+            m_Range = range_;
+            m_Economy = economy_;
+        }
+        int Id()    { return m_Id; }
+        int Range() { return m_Range; }
+        int Economy()  { return m_Economy; }
+        int Cost(int x1_, int y1_, int x2_ = 0, int y2_ = 0)
+        {
+            return (m_Economy*(abs(x1_ - x2_) + abs(y1_ - y2_)));
+        }
+    private:
+        int m_Id;
+        int m_Range;
+        int m_Economy;
+};
+
+class Grid {
+    public:
+        Grid(vector <CartesianPts> vectPts_)
+        {
+            vector <CartesianPts>::iterator it;
+            m_vectBoundary = vectPts_;
+            SortByX(m_vectBoundary);
+            InitXY();
+            InitGrid();
+        }
+        void InitGrid()
+        {
+            CartesianPts leftPt, rightPt, upPt, downPt; //Neighbouting Points;
+
+            int i = 0;
+            /****Initialise the neighbouring Points***/
+            leftPt.X_ = m_vectBoundary.at(i).X_ - 1; leftPt.Y_ = m_vectBoundary.at(i).Y_;
+            rightPt.X_ = m_vectBoundary.at(i).X_ + 1; rightPt.Y_ = m_vectBoundary.at(i).Y_;
+            upPt.X_ = m_vectBoundary.at(i).X_; upPt.Y_ = m_vectBoundary.at(i).Y_ + 1;
+            downPt.X_ = m_vectBoundary.at(i).X_; downPt.Y_ = m_vectBoundary.at(i).Y_ - 1;
+            /******************************************/
+            int Xmax = 0, Ymax = 0, y = 0;
+            rectGrid(Xmax, Ymax);
+            for (int i = 0; i < m_vectGrid.size(); i++)
+            {
+                vector <CartesianPts>::iterator it;
+                it = find_if(m_vectBoundary.begin(), m_vectBoundary.end(), NameEquals(m_vectGrid.at(i)));
+                y = (m_vectGrid.at(i)).Y_;
+                CartesianPts Pts; int intCrossed = 0;
+                Pts.X_ = m_vectGrid.at(i).X_; 
+                while (y <= Ymax && it == m_vectBoundary.end())
+                {
+                    vector <CartesianPts>::iterator it2;
+                    Pts.Y_ = y;
+                    it2 = find_if(m_vectBoundary.begin(), m_vectBoundary.end(), NameEquals(Pts));
+                    if (it2 != m_vectBoundary.end())
+                    {
+                        intCrossed++;
+                    }
+                    y++; Pts.X_++;
+                }
+                if (intCrossed%2 == 0)
+                {
+                    m_vectGrid.erase(m_vectGrid.begin()+i);
+                }
+            }
+        }
+        void rectGrid(int &Xmax, int &Ymax)
+        {
+            CartesianPts V1, V2, V3, V4; //Circumscribing Rectangle;
+            /*****Initialise Circumscribing Rectangle*****
+             *   V4*********V3
+             *   *           *
+             *   *           *
+             *   *           *
+             *   V1*********V2
+             */
+            V1.X_ = m_vectX.front(); 
+            V2.X_ = m_vectX.back(); 
+            V1.Y_ = m_vectY.front();
+            V2.Y_ = m_vectY.back();
+            /***********************************************/
+            CartesianPts Pts;
+            for (int x = V1.X_+1; x < V2.X_; x++)
+            {
+                for (int y = V1.Y_+1; y < V2.Y_; y++)
+                {
+                    Pts.X_ = x; Pts.Y_ = y;
+                    m_vectGrid.push_back(Pts);
+                }
+            }
+            SortByX(m_vectGrid);
+        }
+        void InitXY()
+        {
+            for (int i = 0; i < m_vectBoundary.size(); i++)
+            {
+                m_vectX.push_back(m_vectBoundary.at(i).X_);
+                m_vectY.push_back(m_vectBoundary.at(i).Y_);
+            }
+            Sort(m_vectX); Sort(m_vectY);
+        }
+        void PrintGridPts()
+        {
+            for (int i = 0; i < m_vectBoundary.size(); i++)
+                cout << "X:" << (m_vectGrid.at(i)).X_ << " " << "Y:" << (m_vectGrid.at(i)).Y_ << endl;
+            
+        }
+    protected:
+        static bool compareCoord(const CartesianPts &a, const CartesianPts &b)
+        {
+            if (a.X_ == b.X_)
+                return a.Y_ < b.Y_;
+            else
+                return a.X_ < b.X_;
+        }
+        static bool compareCoordY(const CartesianPts &a, const CartesianPts &b)
+        {
+            if (a.Y_ == b.Y_)
+                return a.X_ < b.X_;
+            else
+                return a.Y_ < b.Y_;
+        }
+
+        static bool compare(const int &a, const int &b)
+        {
+            return a < b;
+        }
+        void SortByX(vector <CartesianPts> &vectPts_)
+        {
+            sort(vectPts_.begin(), vectPts_.end(), compareCoord);
+        }
+        void SortByY(vector <CartesianPts> &vectPts_)
+        {
+            sort(vectPts_.begin(), vectPts_.end(), compareCoordY);
+        }
+
+        void Sort(vector <int> &vectPts)
+        {
+            sort(vectPts.begin(), vectPts.end(), compare);
+        }
+
+    private:
+        vector <CartesianPts> m_vectBoundary;
+        vector <CartesianPts> m_vectGrid;
+        vector <int> m_vectX;
+        vector <int> m_vectY;
+        map <CartesianPts, bool, valueComp> m_mapPts;
+        bool m_isInGrid, m_isOutGrid;
+};
+#endif
